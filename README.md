@@ -13,6 +13,14 @@ Web app de planification de plongee pour **Directeur de Plongee (DP)**, propulse
 
 Concue pour [Caen Ouistreham Plongee (COP)](https://caen-ouistreham-plongee.org/), adaptable a tout club de plongee francais.
 
+### Ecosysteme Dive Director
+
+| Repo | Role | Stack |
+|---|---|---|
+| [dive-director](https://github.com/dorian-erkens/dive-director) | CLI — orchestrateur, 8 agents, `/plan-dive` | Claude Code, Markdown |
+| **dive-director-app** (ce repo) | Web app — carte epaves, chat IA, inspector panel | FastAPI, React, Leaflet |
+| [mcp-shom-wrecks](https://github.com/dorian-erkens/mcp-shom-wrecks) | Serveur MCP — 4 796+ epaves SHOM | TypeScript, MCP SDK |
+
 ---
 
 ## Demo
@@ -164,10 +172,13 @@ Voir les [issues ouvertes](https://github.com/dorian-erkens/dive-director-app/is
 | 4 | [Meteo temps reel via API](https://github.com/dorian-erkens/dive-director-app/issues/8) |
 | 5 | [Inspector pedagogique](https://github.com/dorian-erkens/dive-director-app/issues/6) |
 
-## Projets lies
+## Ecosysteme
 
-- [dive-director](https://github.com/dorian-erkens/dive-director) — Version CLI (Claude Code agents)
-- [mcp-shom-wrecks](https://github.com/dorian-erkens/mcp-shom-wrecks) — MCP server pour la base SHOM
+| Repo | Role | Stack |
+|---|---|---|
+| [dive-director](https://github.com/dorian-erkens/dive-director) | CLI — orchestrateur, 8 agents, `/plan-dive` | Claude Code, Markdown |
+| **dive-director-app** (ce repo) | Web app — carte epaves, chat IA, inspector panel | FastAPI, React, Leaflet |
+| [mcp-shom-wrecks](https://github.com/dorian-erkens/mcp-shom-wrecks) | Serveur MCP — 4 796+ epaves SHOM | TypeScript, MCP SDK |
 
 ## Licence
 
@@ -196,6 +207,10 @@ Every feature idea goes through an automated PRD pipeline: GitHub Issue (insight
 ### Tech stack
 FastAPI, React 19, TypeScript, Tailwind, Leaflet, Claude API (Anthropic), SHOM WFS, WebSocket streaming.
 
-### Related projects
-- [dive-director](https://github.com/dorian-erkens/dive-director) — CLI version with 7 Claude Code agents
-- [mcp-shom-wrecks](https://github.com/dorian-erkens/mcp-shom-wrecks) — MCP server for SHOM wreck database (4,796+ wrecks)
+### Ecosystem
+
+| Repo | Role | Stack |
+|---|---|---|
+| [dive-director](https://github.com/dorian-erkens/dive-director) | CLI — orchestrator, 8 agents, `/plan-dive` | Claude Code, Markdown |
+| **dive-director-app** (this repo) | Web app — wreck map, AI chat, inspector panel | FastAPI, React, Leaflet |
+| [mcp-shom-wrecks](https://github.com/dorian-erkens/mcp-shom-wrecks) | MCP server — 4,796+ SHOM wrecks | TypeScript, MCP SDK |
