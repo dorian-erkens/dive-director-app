@@ -7,8 +7,8 @@ from typing import AsyncGenerator
 import anthropic
 
 from app.models.inspector import AgentName, EventType, InspectorEvent
-from app.services import shom
 from app.services.inspector import inspector_bus
+from app.services.mcp_client import get_client
 
 SYSTEM_PROMPT = """Tu es l'assistant du Directeur de Plongée (DP) du club Caen Ouistreham Plongée (COP).
 Tu opères depuis le port d'Ouistreham (49°17'N, 000°15'W) à bord du CIPI'ONE.
@@ -92,6 +92,11 @@ TOOLS = [
 
 
 async def _execute_tool(tool_name: str, tool_input: dict, conversation_id: str) -> str:
+    """Execute a tool via the MCP server and return the raw JSON text.
+
+    Before (shom.py):  Python HTTP client → SHOM WFS API → parse → Wreck → json.dumps()
+    After  (MCP):      JSON-RPC → mcp-shom-wrecks → SHOM WFS API → JSON text (pass-through)
+    """
     await inspector_bus.publish(
         conversation_id,
         InspectorEvent(
@@ -104,31 +109,15 @@ async def _execute_tool(tool_name: str, tool_input: dict, conversation_id: str) 
     )
 
     try:
-        if tool_name == "search_wreck_by_name":
-            wrecks = await shom.search_by_name(tool_input["name"])
-            result = [w.model_dump() for w in wrecks]
-        elif tool_name == "get_nearby_wrecks":
-            wrecks = await shom.get_nearby(
-                tool_input["latitude"],
-                tool_input["longitude"],
-                tool_input["radius_nm"],
-            )
-            result = [w.model_dump() for w in wrecks]
-        elif tool_name == "search_wrecks_bbox":
-            wrecks = await shom.search_bbox(
-                tool_input["min_lat"],
-                tool_input["max_lat"],
-                tool_input["min_lon"],
-                tool_input["max_lon"],
-            )
-            result = [w.model_dump() for w in wrecks]
-        elif tool_name == "get_wreck_details":
-            wreck = await shom.get_details(tool_input["id"])
-            result = wreck.model_dump() if wreck else {"error": "Épave non trouvée"}
-        else:
-            result = {"error": f"Outil inconnu: {tool_name}"}
+        mcp = await get_client()
+        result_text = await mcp.call_tool(tool_name, tool_input)
 
-        result_str = json.dumps(result, ensure_ascii=False, default=str)
+        # Count results for the inspector
+        try:
+            parsed = json.loads(result_text)
+            count = len(parsed.get("wrecks", [])) if "wrecks" in parsed else 1
+        except (json.JSONDecodeError, AttributeError):
+            count = 1
 
         await inspector_bus.publish(
             conversation_id,
@@ -136,12 +125,12 @@ async def _execute_tool(tool_name: str, tool_input: dict, conversation_id: str) 
                 type=EventType.TOOL_RESULT,
                 agent=AgentName.WRECK_FINDER,
                 title=f"Résultat: {tool_name}",
-                content=f"{len(result) if isinstance(result, list) else 1} résultat(s)",
-                metadata={"tool": tool_name, "count": len(result) if isinstance(result, list) else 1},
+                content=f"{count} résultat(s)",
+                metadata={"tool": tool_name, "count": count},
             ),
         )
 
-        return result_str
+        return result_text
 
     except Exception as e:
         error_msg = f"Erreur lors de l'appel à {tool_name}: {e}"
