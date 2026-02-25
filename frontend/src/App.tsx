@@ -38,6 +38,7 @@ export default function App() {
           <ChatPanel
             messages={chat.messages}
             isStreaming={chat.isStreaming}
+            connectionError={chat.connectionError}
             onSend={chat.sendMessage}
           />
         </div>

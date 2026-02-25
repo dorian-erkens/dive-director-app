@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 import json
 import uuid
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from app.models.inspector import InspectorEvent
 from app.services.claude import chat_stream
 from app.services.inspector import inspector_bus
 
@@ -32,7 +33,10 @@ async def websocket_chat(websocket: WebSocket):
 
             await websocket.send_json({"type": "stream_start"})
 
+            # Collect full response text to add to conversation history
+            full_response = ""
             async for token in chat_stream(messages, conversation_id):
+                full_response += token
                 await websocket.send_json({
                     "type": "stream_token",
                     "token": token,
@@ -40,11 +44,10 @@ async def websocket_chat(websocket: WebSocket):
 
             await websocket.send_json({"type": "stream_end"})
 
-            # Collect the full response for conversation history
-            # (Claude service already yielded it token by token)
-            # We reconstruct from the stream — a simplification;
-            # in practice we'd collect during streaming
-            # For now, we ask the caller to track the assembled text
+            # Add assistant response to history so Claude has full context
+            if full_response:
+                messages.append({"role": "assistant", "content": full_response})
+
     except WebSocketDisconnect:
         pass
 
@@ -56,7 +59,7 @@ async def websocket_inspector(websocket: WebSocket, conversation_id: str):
 
     try:
         while True:
-            event: InspectorEvent = await queue.get()
+            event = await queue.get()
             await websocket.send_json(
                 event.model_dump(mode="json")
             )

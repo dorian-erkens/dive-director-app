@@ -6,9 +6,11 @@ export function useChat() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [inspectorEvents, setInspectorEvents] = useState<InspectorEvent[]>([])
+  const [connectionError, setConnectionError] = useState<string | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
   const inspectorWsRef = useRef<WebSocket | null>(null)
   const streamBufferRef = useRef('')
+  const pendingMessageRef = useRef<string | null>(null)
 
   const connectInspector = useCallback((convId: string) => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -24,9 +26,17 @@ export function useChat() {
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
+    // Prevent multiple connection attempts
+    if (wsRef.current?.readyState === WebSocket.CONNECTING) return
+
+    setConnectionError(null)
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const ws = new WebSocket(`${protocol}//${window.location.host}/ws/chat`)
+
+    ws.onopen = () => {
+      setConnectionError(null)
+    }
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data)
@@ -35,6 +45,13 @@ export function useChat() {
         case 'connected':
           setConversationId(data.conversation_id)
           connectInspector(data.conversation_id)
+          // Send any pending message that was waiting for connection
+          if (pendingMessageRef.current && ws.readyState === WebSocket.OPEN) {
+            const msg = pendingMessageRef.current
+            pendingMessageRef.current = null
+            setMessages((prev) => [...prev, { role: 'user', content: msg }])
+            ws.send(JSON.stringify({ message: msg }))
+          }
           break
 
         case 'stream_start':
@@ -61,6 +78,10 @@ export function useChat() {
       }
     }
 
+    ws.onerror = () => {
+      setConnectionError('Connexion au serveur impossible. Le backend tourne-t-il sur le port 8000 ?')
+    }
+
     ws.onclose = () => {
       wsRef.current = null
     }
@@ -71,9 +92,9 @@ export function useChat() {
   const sendMessage = useCallback(
     (content: string) => {
       if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        // Queue the message and connect
+        pendingMessageRef.current = content
         connect()
-        // Retry after connection
-        setTimeout(() => sendMessage(content), 500)
         return
       }
 
@@ -92,6 +113,7 @@ export function useChat() {
     isStreaming,
     conversationId,
     inspectorEvents,
+    connectionError,
     connect,
     sendMessage,
     clearInspector,
