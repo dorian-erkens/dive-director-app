@@ -1,0 +1,76 @@
+name: Generate PRD from Insight
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  generate-prd:
+    if: github.event.label.name == 'insight'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install anthropic SDK
+        run: pip install anthropic
+
+      - name: Generate PRD
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          python .github/scripts/generate_prd.py
+
+      - name: Create branch and PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+        run: |
+          # Create slug from title
+          SLUG=$(echo "$ISSUE_TITLE" | sed 's/\[Insight\] //g' | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd 'a-z0-9-' | head -c 50)
+          BRANCH="prd/issue-${ISSUE_NUMBER}-${SLUG}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git checkout -b "$BRANCH"
+          git add "docs/prd/"
+          git commit -m "Draft PRD for #${ISSUE_NUMBER}: ${ISSUE_TITLE}"
+          git push origin "$BRANCH"
+
+          # Create PR
+          gh pr create \
+            --title "PRD Draft: ${ISSUE_TITLE}" \
+            --body "$(cat <<EOF
+          ## PRD auto-genere depuis l'insight #${ISSUE_NUMBER}
+
+          Ce PRD a ete genere automatiquement par Claude a partir de l'issue source.
+
+          ### Workflow
+          1. **Review** ce draft — ajustez les sections, scores ICE, hypotheses
+          2. **Challengez** les assumptions marquees dans le document
+          3. **Merge** quand le PRD est pret pour prototypage
+
+          ---
+          Closes #${ISSUE_NUMBER}
+          EOF
+          )" \
+            --label "prd"
+
+          # Comment on the original issue
+          gh issue comment "$ISSUE_NUMBER" \
+            --body "Un PRD draft a ete genere automatiquement. Retrouvez-le dans la PR associee a cette issue. Reviewez, ajustez et mergez quand c'est pret."

@@ -1,0 +1,62 @@
+name: "Insight / Idee d'amelioration"
+description: "Proposer une idee d'amelioration a transformer en PRD"
+title: "[Insight] "
+labels: ["insight"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Un PRD (Product Requirements Document) sera automatiquement genere a partir de cette issue.
+  - type: textarea
+    id: idea
+    attributes:
+      label: "Idee"
+      description: "Decrivez l'amelioration en quelques phrases"
+      placeholder: "Ex: Permettre au DP de choisir son port de depart pour adapter tout le workflow"
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: "Contexte"
+      description: "Pourquoi maintenant ? Quel probleme ou opportunite ?"
+      placeholder: "Ex: Aujourd'hui tout est hard-code sur Ouistreham, ca empeche les autres clubs d'utiliser l'outil"
+    validations:
+      required: true
+  - type: textarea
+    id: persona
+    attributes:
+      label: "Pour qui ?"
+      description: "Persona / segment utilisateur concerne"
+      placeholder: "Ex: DP de clubs de plongee normands"
+    validations:
+      required: false
+  - type: dropdown
+    id: impact
+    attributes:
+      label: "Impact estime"
+      options:
+        - "Faible"
+        - "Moyen"
+        - "Fort"
+        - "Transformant"
+    validations:
+      required: true
+  - type: dropdown
+    id: ease
+    attributes:
+      label: "Facilite de prototypage"
+      options:
+        - "Simple (< 1 jour)"
+        - "Moyen (1-3 jours)"
+        - "Complexe (> 3 jours)"
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: "Evidence disponible"
+      description: "Qu'est-ce qui soutient cette idee ? (feedback users, data, intuition...)"
+      placeholder: "Ex: 3 clubs ont demande si l'outil marchait chez eux"
+    validations:
+      required: false
